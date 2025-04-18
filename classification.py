@@ -11,7 +11,7 @@ from pathlib import Path
 print(tf.__version__)
 print(tf.keras.layers.Rescaling)
 
-data_dir = Path('flowers_photos')
+data_dir = Path('flowers_photos120')
 image_paths = list(data_dir.glob('*/*.jpg'))
 image_count = len(image_paths)
 print(image_count)
@@ -105,13 +105,19 @@ model.compile(optimizer='adam',
 # summary of model
 model.summary()
 
+
+
 # train model
-epochs = 15
+epochs = 40
 history = model.fit(
   train_ds,
   validation_data=val_ds,
   epochs=epochs
 )
+
+model.save("flower_classifier.keras")
+
+
 
 # show outcomes
 acc = history.history['accuracy']

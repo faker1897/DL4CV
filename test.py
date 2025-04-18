@@ -1,22 +1,14 @@
-import os
-import shutil
-import scipy.io
-from pathlib import Path
-import re
-# set path
-image_dir = Path('jpg')
-label_file = Path('imagelabels.mat')
-output_dir = Path('flowers_photos120')
+import tensorflow as tf
+import numpy as np
+from PIL import Image
 
-# make dir
-output_dir.mkdir(parents=True, exist_ok=True)
+# load model
+model = tf.keras.models.load_model("flower_classifier.keras")
+
+print("Num GPUs Available:", len(tf.config.list_physical_devices('GPU')))
 
 
-mat = scipy.io.loadmat(label_file)
-labels = mat['labels'][0]
-
-
-flower_names = [
+class_names = [
     'pink primrose', 'hard-leaved pocket orchid', 'canterbury bells', 'sweet pea',
     'english marigold', 'tiger lily', 'moon orchid', 'bird of paradise', 'monkshood',
     'globe thistle', 'snapdragon', "colt's foot", 'king protea', 'spear thistle',
@@ -39,24 +31,24 @@ flower_names = [
     'blanket flower', 'trumpet creeper', 'blackberry lily'
 ]
 
-for index in range(len(flower_names)):
-    name = flower_names[index]
-    name = re.sub(r'[^a-zA-Z0-9 ]', '', name)
-    name_split = name.split(' ')
-    for inName in range(len(name_split)):
-        name_split[inName] = name_split[inName].capitalize()
-    flower_names[index]=name_split
-    flower_names[index] = ''.join(name_split)
-print(flower_names)
+def predict_image(image_path):
+    # 参数
+    img_height = 180
+    img_width = 180
 
-for name in flower_names:
-    class_dir = output_dir / name
-    class_dir.mkdir(parents=True, exist_ok=True)
+    # 加载并预处理图像
+    img = Image.open(image_path).convert("RGB")
+    img = img.resize((img_width, img_height))
+    img_array = tf.keras.utils.img_to_array(img)
+    img_array = tf.expand_dims(img_array, 0)  # 变成 batch size 为 1
 
+    # 预测
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])  # 如果你用的是 from_logits=True，就要 softmax 一下
 
-for idx, label in enumerate(labels):
-    image_filename = f'image_{idx + 1:05d}.jpg'
-    src_path = image_dir / image_filename
-    flower_name = flower_names[label - 1]  # fix bug here
-    output_path = output_dir / flower_name / image_filename
-    shutil.copy(src_path, output_path)
+    # 输出结果
+    print("预测结果：这张图最可能是 '{}'，置信度为 {:.2f}%".format(
+        class_names[np.argmax(score)-1], 100 * np.max(score)))
+
+# 用你自己的图片调用
+predict_image("test/daffodil.png")
